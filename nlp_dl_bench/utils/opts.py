@@ -34,7 +34,7 @@ def parse_opt(data_name, model_name) -> Config:
 
     #config_yaml = 'configs/ag_news/han.yaml'
 
-    config_yaml = 'configs/'
+    config_yaml = 'nlp_dl_bench/configs/'
     config_yaml += data_name + '/'
     config_yaml += model_name + '.yaml'
 

@@ -167,12 +167,12 @@ def main():
 
     base_dir = "/mnt/ds3lab-scratch/shaodgan/"
     raw_images_base_dir = base_dir + "ImageNet/"
-    tfrecord_output_base_dir = os.path.join("/mnt/ds3lab-scratch/xuliji/corgipile_data/", "ImageNet-all-raw-tfrecords-shuffle")
-    shuffle = True # False
+    tfrecord_output_base_dir = os.path.join("/mnt/ds3lab-scratch/xuliji/corgipile_data/", "ImageNet-all-raw-tfrecords")
+    shuffle = False # True if you would like to get shuffled images in the generated TFRecords
     generate_tfRecords = True
     read_tfRecords = False
     
-    images_num = 0 #1234 # 0 for all the images
+    images_num = 0 # the number of images included in the gerated TFRecords, 0 for all the images
 
     image_train_dir = os.path.join(raw_images_base_dir, "train")
     train_output_dir = os.path.join(tfrecord_output_base_dir, "train")

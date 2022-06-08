@@ -44,39 +44,7 @@ class InMemBlockCifarDataset(torch.utils.data.IterableDataset):
         # print("[Tip] Using datast.set_epoch(epoch) to shuffle the blocks before each epoch.")
 
     # shuffle the block_index_list before each epoch
-    '''
-    def set_epoch(self, epoch):
-        # shuffle the blocks' indexes
-        random.seed(epoch)
-        random.shuffle(self.block_index_list)
-
-    def split_index_to_blocks(self):
-        # e.g., [0, 71, 142, 213, 284, 355, 426, 497, 568, 639]
-        assert(self.block_size > 0)
-        if self.drop_last:
-            block_num = self.num_records // self.block_size
-        else:
-            block_num = (self.num_records + (self.block_size - 1)) // self.block_size
-        
-        print ('[param] block_num = %d, block_tuple_num = %d' % (block_num, self.block_size) )
-        if block_num * self.block_size > self.num_records:
-            print('[Info][block_num * block_size > num_records]', block_num, self.block_size, self.num_records)
-
-        # store index_id instead of file_offset
-        block_index_list = []
-
-        for idx in range(0, block_num):
-            start_index = self.block_size * idx
-            end_index = self.block_size * (idx + 1)
-
-            if end_index > self.num_records:
-                end_index = self.num_records
-            
-            block_index_list.append((start_index, end_index))
-        
-        #print(block_index_list)
-        return block_index_list
-    '''
+    
     def split_index_to_blocks(self):
         # e.g., [0, 71, 142, 213, 284, 355, 426, 497, 568, 639]
         assert(self.block_num < self.num_records)

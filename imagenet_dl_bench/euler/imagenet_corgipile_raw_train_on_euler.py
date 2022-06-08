@@ -27,8 +27,14 @@ from torch.distributed.algorithms.join import Join
 
 from PIL import Image
 
-sys.path.append("/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/corgipile-pytorch/shuffleformat")
-sys.path.append("/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/corgipile-pytorch/")
+# Using the following two lines if running on normal nodes
+# sys.path.append("../shuffleformat")
+# sys.path.append(".")
+
+# for running on Euler nodes
+sys.path.append("/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/CorgiPile-PyTorch/shuffleformat")
+sys.path.append("/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/CorgiPile-PyTorch/")
+
 import shuffleformat.tfrecord as tfrecord
 import shuffleformat.corgipile as corgipile
 
@@ -98,19 +104,15 @@ def main():
     node = 'euler'
     data_path = get_data_path(image_type, data_name, node)
     
-    # log_base_dir = '/mnt/ds3lab-scratch/xuliji/code/corgipile-pytorch'
-    log_base_dir = '/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/corgipile-pytorch'
-    #log_dir = 'train_log_' + data_name + '_test_w16'
-    log_dir = 'train_log_' + data_name + '_paper'
+    # log_base_dir = '/mnt/ds3lab-scratch/xuliji/code/CorgiPile-PyTorch'
+    log_base_dir = '/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/CorgiPile-PyTorch'
+    log_dir = 'train_log_' + data_name + '_sgd'
 
-    #model_name = "resnet18"
     model_name = "resnet50"
 
-    
     data_loading_workers_num = 16
     epoch_num = 100
     start_epoch = 0
-    #batch_sizes = [256]
     batch_sizes = [512]
     learning_rates = [0.1]
     momentum = 0.9
@@ -122,11 +124,12 @@ def main():
     dist_backend = 'nccl'
     multiprocessing_distributed = True
 
-       
+    
     shuffle_modes = ['block']
-   
-    block_num = 14000 #28000 #225 #200 #563 #112 #14000 
-    buffer_size_ratio = 0.0125 #0.05 #0.0375 #15 #0.05 #0.025
+    # shuffle_mode == ['no_shuffle', 'once_shuffle']
+
+    block_num = 14000 #28000, {Total size = 140GB, 14000 blocks = 10MB per block, 28000 blocks = 5MB per block}
+    buffer_size_ratio = 0.0125 # {Total buffer size = 0.0125 * 8 GPUs = 10% of the whole dataset}
 
     seed = None
     gpu = None
@@ -321,7 +324,6 @@ def main_worker(gpu, ngpus_per_node, args, join=True):
     
     
     scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
-    #scheduler = StepLR(optimizer, step_size=1, gamma=0.95)
     
     # optionally resume from a checkpoint
     if args['resume']:

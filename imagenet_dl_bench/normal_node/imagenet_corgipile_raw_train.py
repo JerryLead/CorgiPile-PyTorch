@@ -1,5 +1,8 @@
 import argparse
 import os
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1, 2, 3, 4, 5, 6, 7'
+
 import random
 import shutil
 import time
@@ -27,8 +30,14 @@ from torch.distributed.algorithms.join import Join
 
 from PIL import Image
 
+# Using the following two lines if running on normal nodes
 sys.path.append("../shuffleformat")
 sys.path.append(".")
+
+# for running on Euler nodes
+# sys.path.append("/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/CorgiPile-PyTorch/shuffleformat")
+# sys.path.append("/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/CorgiPile-PyTorch/")
+
 import shuffleformat.tfrecord as tfrecord
 import shuffleformat.corgipile as corgipile
 
@@ -56,19 +65,33 @@ best_acc1 = 0
     #         [imagenet-folder with train and val folders]
 '''
 
-def get_data_path(image_type, data_name):
+def get_data_path(image_type, data_name, node, shuffle=False):
+    if node == 'euler':
+        basedir = '/cluster/work/zhang/xuliji/'
+    else:
+        basedir = '/mnt/ds3lab-scratch/xuliji/'
+    
     if image_type == 'raw':
         if data_name == 'imagenette':
-            data_path = "/mnt/ds3lab-scratch/xuliji/corgipile_data/imagenette2-raw-tfrecords"
+            data_path = basedir + "corgipile_data/imagenette2-raw-tfrecords"
+            if shuffle == True:
+                data_path = basedir + "corgipile_data/imagenette2-raw-tfrecords-shuffle"
         elif data_name == 'ImageNet':
-            data_path = "/mnt/ds3lab-scratch/xuliji/corgipile_data/ImageNet-all-raw-tfrecords"
+            data_path = basedir + "corgipile_data/ImageNet-all-raw-tfrecords"
+            if shuffle == True:
+                data_path = basedir + "corgipile_data/ImageNet-all-raw-tfrecords-shuffle"
         else:
             raise ValueError('This dataset is not supported currently!')
+
     elif image_type == 'RGB':
         if data_name == 'imagenette':
-            data_path = "/mnt/ds3lab-scratch/xuliji/corgipile_data/imagenette2-tfrecords"
+            data_path = basedir + "corgipile_data/imagenette2-tfrecords"
+            if shuffle == True:
+                data_path = basedir + "corgipile_data/imagenette2-tfrecords-shuffle"
         elif data_name == 'ImageNet':
-            data_path = "/mnt/ds3lab-scratch/xuliji/corgipile_data/ImageNet-all-tfrecords"
+            data_path = basedir + "corgipile_data/ImageNet-all-tfrecords"
+            if shuffle == True:
+                data_path = basedir + "corgipile_data/ImageNet-all-tfrecords-shuffle"
         else:
             raise ValueError('This dataset is not supported currently!')
     else:
@@ -79,21 +102,21 @@ def get_data_path(image_type, data_name):
 def main():
 
     image_type = 'raw' # or 'RGB'
-    data_name = 'imagenette'
-    # data_name = 'ImageNet'
-    data_path = get_data_path(image_type, data_name)
+    #data_name = 'imagenette'
+    data_name = 'ImageNet'
+    node = 'normal'
+    data_path = get_data_path(image_type, data_name, node)
     
-    log_base_dir = '/mnt/ds3lab-scratch/xuliji/code/corgipile-pytorch'
-    log_dir = 'train_log_' + data_name
+    # log_base_dir = '/mnt/ds3lab-scratch/xuliji/code/CorgiPile-PyTorch'
+    log_base_dir = '/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/CorgiPile-PyTorch'
+    log_dir = 'train_log_' + data_name + '_sgd'
 
-    model_name = "resnet18"
-    #model_name = "resnet50"
+    model_name = "resnet50"
 
-    
-    data_loading_workers_num = 1
-    epoch_num = 3
+    data_loading_workers_num = 16
+    epoch_num = 100
     start_epoch = 0
-    batch_sizes = [256]
+    batch_sizes = [512]
     learning_rates = [0.1]
     momentum = 0.9
     weight_decay = 1e-4
@@ -104,23 +127,16 @@ def main():
     dist_backend = 'nccl'
     multiprocessing_distributed = True
 
-    # once_shuffle: the image data is shufffled => tfrecords.
-    # block: the image data is clustered.
-    # no_shuffle: the image data is clustered.
-    # epoch_shuffle: randomly access each tuple in each epoch.
-    # shuffle_modes = ['once_shuffle', 'block', 'no_shuffle', 'epoch_shuffle']
+    
     shuffle_modes = ['block']
+    # shuffle_mode == ['no_shuffle', 'once_shuffle']
 
-
-    block_num = 112 #200 #563 #112 #14000
-    buffer_size_ratio = 0.1
+    block_num = 14000 #28000, {Total size = 140GB, 14000 blocks = 10MB per block, 28000 blocks = 5MB per block}
+    buffer_size_ratio = 0.0125 # {Total buffer size = 0.0125 * 8 GPUs = 10% of the whole dataset}
 
     seed = None
     gpu = None
-    
-    # os.environ['CUDA_VISIBLE_DEVICES'] = '1, 2, 3, 4'
-    os.environ['CUDA_VISIBLE_DEVICES'] = '5, 6'
-
+   
     args = {}
     args['image_type'] = image_type
     args['data'] = data_path
@@ -147,6 +163,8 @@ def main():
     args['pretrained'] = False
     args['resume'] = False
     args['evaluate'] = False
+
+    # args['gpu_type'] = torch.cuda.get_device_name(0)
     
     for batch_size in batch_sizes:
         args['batch_size'] = batch_size
@@ -154,17 +172,24 @@ def main():
             args['lr'] = learning_rate
             for shuffle_mode in shuffle_modes:
                 args['shuffle_mode'] = shuffle_mode
+
+                if shuffle_mode == 'once_shuffle':
+                    args['data'] = get_data_path(image_type, data_name, node, shuffle=True)
                 
                 acc_log_txt = shuffle_mode + '_' + data_name + '_lr' + str(learning_rate) + '_' + get_current_time_filename() #+ '.txt'
                 batch_run_log = shuffle_mode + '_' + data_name + '_lr' + str(learning_rate) + '_' + get_current_time_filename() #+ '.log'
                 outdir = os.path.join(log_base_dir, log_dir, data_name, model_name, 'sgd-bs' + str(batch_size), shuffle_mode)
             
-                acc_log_file = os.path.join(outdir, acc_log_txt)
-                batch_log_file = os.path.join(outdir, batch_run_log)
+                acc_log_file = os.path.join(outdir, 'acc', acc_log_txt)
+                batch_log_file = os.path.join(outdir, 'log', batch_run_log)
                 args['acc_log_file'] = acc_log_file
                 args['batch_log_file'] = batch_log_file
-                if not os.path.exists(outdir):
-                    os.makedirs(outdir)
+                
+                if not os.path.exists(os.path.join(outdir, 'acc')):
+                    os.makedirs(os.path.join(outdir, 'acc'))
+
+                if not os.path.exists(os.path.join(outdir, 'log')):
+                    os.makedirs(os.path.join(outdir, 'log'))
 
                 if args['seed'] is not None:
                     random.seed(args['seed'])
@@ -209,12 +234,15 @@ def main_worker(gpu, ngpus_per_node, args, join=True):
     args['gpu'] = gpu
     args['ngpus_per_node'] = ngpus_per_node
 
+    args['gpu_type'] = torch.cuda.get_device_name(0)
+
     acc_log_file = args['acc_log_file'] + '-gpu' + str(gpu) + '.txt'
     batch_log_file = args['batch_log_file'] + '-gpu' + str(gpu) + '.log'
+    writer = open(acc_log_file, 'w')
+    batch_log_writer = open(batch_log_file, 'w')
 
-
-    writer = sys.stdout
-    batch_log_writer = sys.stdout
+    # writer = sys.stdout
+    # batch_log_writer = sys.stdout
 
     for k in args:
         writer.write("[params] " + str(k) + " = " + str(args[k]) + '\n')
@@ -299,7 +327,6 @@ def main_worker(gpu, ngpus_per_node, args, join=True):
     
     
     scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
-    #scheduler = StepLR(optimizer, step_size=1, gamma=0.95)
     
     # optionally resume from a checkpoint
     if args['resume']:
@@ -349,6 +376,11 @@ def main_worker(gpu, ngpus_per_node, args, join=True):
 
     shuffle_mode = args['shuffle_mode']
 
+    # once_shuffle: the image data is shufffled => tfrecords.
+    # block: the image data is clustered.
+    # no_shuffle: the image data is clustered.
+    # epoch_shuffle: directly read the image data from jpgs.
+    # shuffle_modes = ['once_shuffle', 'block', 'no_shuffle', 'epoch_shuffle']
 
     if shuffle_mode == 'block':
         train_dataset = corgipile.dataset.CorgiPileTFRecordDataset(
@@ -360,7 +392,7 @@ def main_worker(gpu, ngpus_per_node, args, join=True):
                                 transform=decode_train_raw_image,
                                 trans_after_buffered=True,
                                 distributed=args['distributed'])   
-    elif shuffle_mode == 'no_shuffle':
+    elif shuffle_mode == 'no_shuffle' or shuffle_mode == 'once_shuffle':
         train_dataset = corgipile.dataset.SeqTFRecordDataset(
                                 train_tfrecord_file, 
                                 train_index_file,
@@ -455,8 +487,8 @@ def main_worker(gpu, ngpus_per_node, args, join=True):
             second_grad_t = grad_t
             second_loss_t = loss_t
 
-        writer.write('[%s] [Epoch %2d] acc1 = %.2f, acc5 = %.2f, train_t = %.2fs, val_t = %.2fs, num_record = %d\n' % 
-            (get_current_time(), i + 1, acc1, acc5, round(exec_t, 2), round(grad_t, 2), num_val_records))
+        writer.write('[%s] [Epoch %2d] acc1 = %.2f, acc5 = %.2f, exec_t = %.2fs, train_t = %.2fs, val_t = %.2fs, num_record = %d\n' % 
+            (get_current_time(), i + 1, acc1, acc5, round(exec_t, 2), round(grad_t, 2), round(loss_t, 2), num_val_records))
         writer.flush()
 
         if acc1 > max_acc1:
@@ -708,7 +740,8 @@ def decode_train_RGB_image(features):
     height = features["height"][0]
 
     img_numpy_array = features["image"].reshape((height, width, 3))
-    features["image"] = Image.fromarray(np.uint8(img_numpy_array))
+    img_numpy_array = Image.fromarray(np.uint8(img_numpy_array))
+
 
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
@@ -721,72 +754,19 @@ def decode_train_RGB_image(features):
         normalize
     ])
     
-    features["image"] = read_trans(features["image"])
+    features_image = read_trans(img_numpy_array)
 
-    features["label"] = features["label"][0]
+   
 
-    return (features["image"], features["label"])
+    features_label = features["label"][0]
+
+    return (features_image, features_label)
 
 
 
 def decode_train_raw_image(features):
-
-    img_bytes = features["image"]
-    features["image"] = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
-
-    read_trans = transforms.Compose([
-        transforms.RandomResizedCrop(224),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        normalize
-    ])
-    
-    features["image"] = read_trans(features["image"])
-
-    features["label"] = features["label"][0]
-
-    return (features["image"], features["label"])
-
-
-
-def decode_val_raw_image(features):
-
-    img_bytes = features["image"]
-    features["image"] = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-
-
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
-
-    read_trans = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        normalize
-    ])
-    
-    features["image"] = read_trans(features["image"])
-
-  
-
-    features["label"] = features["label"][0]
-
-    return (features["image"], features["label"])
-
-
-
-
-def decode_val_RGB_image(features):
-    width = features["width"][0]
-    height = features["height"][0]
-
-    img_numpy_array = features["image"].reshape((height, width, 3))
-    features["image"] = Image.fromarray(np.uint8(img_numpy_array))
+   
+    img_bytes = Image.open(io.BytesIO(features["image"])).convert("RGB")
    
 
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -794,19 +774,79 @@ def decode_val_RGB_image(features):
 
 
     read_trans = transforms.Compose([
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        normalize
+    ])
+    
+    features_image = read_trans(img_bytes)
+
+  
+
+    features_label = features["label"][0]
+
+    features['image'] = None
+    features["label"] = None
+
+    return (features_image, features_label)
+
+
+
+def decode_val_raw_image(features):
+  
+    
+    img_bytes = Image.open(io.BytesIO(features["image"])).convert("RGB")
+  
+
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+
+
+    read_trans = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
         normalize
     ])
     
-    features["image"] = read_trans(features["image"])
+    features_image = read_trans(img_bytes)
 
-  
 
-    features["label"] = features["label"][0]
+    features_label = features["label"][0]
 
-    return (features["image"], features["label"])
+    features['image'] = None
+    features["label"] = None
+
+    return (features_image, features_label)
+
+
+
+
+def decode_val_RGB_image(features):
+    width = features["width"][0]
+    height = features["height"][0]
+   
+
+    img_numpy_array = features["image"].reshape((height, width, 3))
+    img_numpy_array = Image.fromarray(np.uint8(img_numpy_array))
+   
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                     std=[0.229, 0.224, 0.225])
+
+
+    read_trans = transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        normalize
+    ])
+    
+    features_image = read_trans(img_numpy_array)
+
+    features_label = features["label"][0]
+
+    return (features_image, features_label)
 
 def get_current_time() :
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())

@@ -1,9 +1,10 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 import torch
 import torch.backends.cudnn as cudnn
 from torch import optim, nn
 import time
+import random
 
 
 import models
@@ -15,15 +16,16 @@ from utils import load_embeddings, load_checkpoint, parse_opt
 
 
 def set_trainer(config, args):
-
-  
     model_name = args['model_name']
     batch_size = args['batch_size']
     data_name = args['data_name']
     learning_rate = args['learning_rate']
     iter_num = args['iter_num']
     lr_decay = args['lr_decay']
-    
+
+    args['use_train_accuracy'] = use_train_accuracy
+    args['use_sgd'] = use_sgd
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     cudnn.benchmark = True  # set to true only if inputs to model are fixed size; otherwise lot of computational overhead
     
@@ -40,7 +42,11 @@ def set_trainer(config, args):
 
         # load data
         train_loader, test_loader, embeddings, emb_size, word_map, n_classes, vocab_size, train_tuple_num = load_data(args, config, 'train', True)
+        test_tuple_num = train_tuple_num
 
+        if (use_train_accuracy == False):
+            test_loader, test_tuple_num = load_data(args, config, 'test', True)
+        
         model = models.make(
             config = config,
             n_classes = n_classes,
@@ -49,24 +55,17 @@ def set_trainer(config, args):
             emb_size = emb_size
         )
 
-        # optimizer = optim.Adam(
-        #     params = filter(lambda p: p.requires_grad, model.parameters()),
-        #     lr = learning_rate
-
-        # )
-
-        # optimizer = optim.SGD(
-        #     params = filter(lambda p: p.requires_grad, model.parameters()),
-        #     lr = learning_rate,
-        #     momentum=0.9, 
-        #     weight_decay=5e-4
-        # )
-
-        optimizer = optim.SGD(
-            params = model.parameters(),
-            lr = learning_rate,
-            weight_decay=5e-4
-        )
+        if (use_sgd == True):
+            optimizer = optim.SGD(
+                params = filter(lambda p: p.requires_grad, model.parameters()),
+                lr = learning_rate
+            )
+        else:
+            optimizer = optim.Adam(
+                params = filter(lambda p: p.requires_grad, model.parameters()),
+                lr = learning_rate
+            )
+        
 
     # loss functions
     loss_function = nn.CrossEntropyLoss()
@@ -80,7 +79,7 @@ def set_trainer(config, args):
         start_epoch = start_epoch,
         train_loader = train_loader,
         test_loader = test_loader,
-        train_tuple_num = train_tuple_num,
+        train_tuple_num = test_tuple_num,
         model = model,
         model_name = model_name,
         loss_function = loss_function,
@@ -107,35 +106,33 @@ if __name__ == '__main__':
     # lr_decay: 0.3  # a factor to multiply learning rate with (0, 1)
     # workers: 1  # number of workers for loading data in the DataLoader
     # num_epochs: 5  # number of epochs to run
-    base_dir = '/mnt/ds3lab-scratch/xuliji/code/corgipile-pytorch'
-    log_dir = 'train_log_nlp_bench_50_sgd_mo9_wd4'
+    base_dir = '/mnt/ds3lab-scratch/xuliji/code/CorgiPile-PyTorch'
+    log_dir = 'train_log_nlp_sgd'
 
-    # model_name = 'han', 'textcnn'
-    #model_name = 'han'
+    # model_name = 'han'
     model_name = 'textcnn'
-
     data_name = 'yelp_review_full'
-
     
     use_clustered_data = True
+    use_train_accuracy = False # If False, it will compute and output test accuracy instead of train accuracy
+    use_sgd = True # If false, it will use Adam instead of SGD
 
-    batch_size = 256
-    #batch_size = 128
-    iter_num = 50
+    #batch_size = 256
+    batch_size = 128
+    iter_num = 3
     num_workers = 1
     lr_decay = 0.95
 
-    shuffle_modes = ['once_shuffle', 'block', 'sliding_window', 'bismarck_mrs', 'no_shuffle', 'block_only', 'block', 'block']
+    shuffle_modes = ['once_shuffle', 'block', 'sliding_window', 'bismarck_mrs', 'no_shuffle', 'block_only']
 
-    
     n_records = 0
     
     if (data_name == 'yelp_review_full'):
         if (model_name == 'han'):
-            learning_rate = 0.1
+            learning_rate = 0.001
         elif (model_name == 'textcnn'):
-            learning_rate = 0.01
-
+            learning_rate = 0.001
+      
         block_num = 650
 
     else:
@@ -143,7 +140,9 @@ if __name__ == '__main__':
 
     args = {}
     args['use_clustered_data'] = use_clustered_data
-    
+    args['use_train_accuracy'] = use_train_accuracy
+    args['use_sgd'] = use_sgd
+
     args['model_name'] = model_name
     args['batch_size'] = batch_size
     args['iter_num'] = iter_num
@@ -161,14 +160,13 @@ if __name__ == '__main__':
 
     # for bismarck_mrs
     bismarck_buffer_size_ratio = 0.1
-    select_ratio_from_old_buffers = [0.5, 0.4]
+    select_ratio_from_old_buffers = [0.4, 0.5]
 
     args['block_num'] = block_num
     args['buffer_size_ratio'] = buffer_size_ratio
     args['sliding_window_size_ratio'] = sliding_window_size_ratio
     args['bismarck_buffer_size_ratio'] = bismarck_buffer_size_ratio
-    args['select_ratio_from_old_buffer'] = 0.5
-    args['old_buffer_checkpoint_dir'] = '/mnt/ds3lab-scratch/xuliji/code/corgipile-pytorch/checkpoint/' + get_current_time_filename() + '0'
+    args['old_buffer_checkpoint_dir'] = '/mnt/ds3lab-scratch/xuliji/code/CorgiPile-PyTorch/checkpoint/' + get_current_time_filename() + str(random.randint(1,100))
 
     
     for shuffle_mode in shuffle_modes:

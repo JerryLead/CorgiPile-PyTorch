@@ -144,7 +144,9 @@ def load_data(args,
 
     sliding_window_size_ratio = args['sliding_window_size_ratio']
     bismarck_buffer_size_ratio = args['bismarck_buffer_size_ratio']
-    select_ratio_from_old_buffer = args['select_ratio_from_old_buffer']
+
+    if (shuffle_mode == 'bismarck_mrs'):
+        select_ratio_from_old_buffer = args['select_ratio_from_old_buffer']
     block_num = args['block_num']
     buffer_size_ratio = args['buffer_size_ratio']
     use_clustered_data = args['use_clustered_data']

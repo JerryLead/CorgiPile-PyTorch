@@ -13,6 +13,7 @@ import os
 import argparse
 import sys
 import time
+import random
 
 sys.path.append("../cifarformat")
 sys.path.append(".")
@@ -98,6 +99,9 @@ def main_worker(args):
     model_name = args['model_name']
     batch_size = args['batch_size']
 
+    use_train_accuracy = args['use_train_accuracy']
+    use_sgd = args['use_sgd']
+
 
     # Data
     print('==> Preparing data..')
@@ -115,7 +119,9 @@ def main_worker(args):
 
     sliding_window_size_ratio = args['sliding_window_size_ratio']
     bismarck_buffer_size_ratio = args['bismarck_buffer_size_ratio']
-    select_ratio_from_old_buffer = args['select_ratio_from_old_buffer']
+
+    if (shuffle_mode == 'bismarck_mrs'):
+        select_ratio_from_old_buffer = args['select_ratio_from_old_buffer']
     block_num = args['block_num']
     buffer_size_ratio = args['buffer_size_ratio']
     use_clustered_data = args['use_clustered_data']
@@ -182,9 +188,13 @@ def main_worker(args):
     trainloader = torch.utils.data.DataLoader(
             trainset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
    
-   
-    testset = torchvision.datasets.CIFAR10(
-        root=data_dir, train=True, download=download, transform=transform_train)
+
+    if (use_train_accuracy):
+        testset = torchvision.datasets.CIFAR10(
+            root=data_dir, train=True, download=download, transform=transform_train)
+    else:
+        testset = torchvision.datasets.CIFAR10(
+            root=data_dir, train=False, download=download, transform=transform_test)
     
     testloader = torch.utils.data.DataLoader(
         testset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
@@ -216,9 +226,12 @@ def main_worker(args):
         start_epoch = checkpoint['epoch']
 
     criterion = nn.CrossEntropyLoss()
-    # optimizer = optim.SGD(net.parameters(), lr=learning_rate,
-    #                     momentum=0.9, weight_decay=5e-4)
-    optimizer = optim.Adam(net.parameters(), lr=learning_rate,
+
+    if (use_sgd):
+        optimizer = optim.SGD(net.parameters(), lr=learning_rate,
+                        momentum=0.9, weight_decay=5e-4)
+    else:
+        optimizer = optim.Adam(net.parameters(), lr=learning_rate,
                         weight_decay=5e-4)
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=iter_num)
@@ -327,13 +340,10 @@ def get_current_time_filename():
 
 def main():
 
-    log_base_dir = '/mnt/ds3lab-scratch/xuliji/code/corgipile-pytorch'
+    log_base_dir = '/mnt/ds3lab-scratch/xuliji/code/CorgiPile-PyTorch'
     data_dir = '/mnt/ds3lab-scratch/xuliji/data/'
     
-    # log_base_dir = '/datadisk/lijie/code/corgipile-pytorch'
-    # data_dir = '/datadisk/data/large_data'
-    
-    log_dir = 'train_log_cifar_bench_50_adam'
+    log_dir = 'train_log_cifar10_sgd'
     
     model_name = 'ResNet18'
     #model_name = 'VGG19'
@@ -342,15 +352,20 @@ def main():
     
     use_clustered_data = True
 
-    batch_size = 256
+    use_train_accuracy = True # If False, it will compute and output test accuracy instead of train accuracy
+    use_sgd = True # If false, it will use Adam instead of SGD
+
+    batch_size = 128
     iter_num = 50
     num_workers = 1
     lr_decay = 0.95
 
-    shuffle_modes = ['once_shuffle']
+    #shuffle_modes = ['once_shuffle']
     #shuffle_modes = ['once_shuffle', 'block', 'block', 'sliding_window', 'bismarck_mrs', 'no_shuffle', 'block_only']
-    
-    os.environ['CUDA_VISIBLE_DEVICES'] = '6'
+    #shuffle_modes = ['block', 'sliding_window', 'bismarck_mrs', 'no_shuffle', 'block_only']
+    shuffle_modes = ['block']
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 
     n_records = 0
@@ -366,6 +381,8 @@ def main():
 
     args = {}
     args['use_clustered_data'] = use_clustered_data
+    args['use_train_accuracy'] = use_train_accuracy
+    args['use_sgd'] = use_sgd
     
     args['model_name'] = model_name
     args['batch_size'] = batch_size
@@ -396,8 +413,7 @@ def main():
     args['buffer_size_ratio'] = buffer_size_ratio
     args['sliding_window_size_ratio'] = sliding_window_size_ratio
     args['bismarck_buffer_size_ratio'] = bismarck_buffer_size_ratio
-    args['select_ratio_from_old_buffer'] = 0.5
-    args['old_buffer_checkpoint_dir'] = log_base_dir + '/checkpoint/' + get_current_time_filename() + '7'
+    args['old_buffer_checkpoint_dir'] = log_base_dir + '/checkpoint/' + get_current_time_filename() + str(random.randint(1,100))
 
     
     for shuffle_mode in shuffle_modes:
