@@ -293,7 +293,7 @@ def main_worker(args):
             second_grad_t = grad_t
             second_loss_t = loss_t
 
-        writer.write('[%s] [Iter %2d] Loss = %.2f, acc = %.2f, exec_t = %.2fs, grad_t = %.2fs, loss_t = %.2fs' % 
+        writer.write('[%s] [Epoch %2d] Loss = %.2f, acc = %.2f, exec_t = %.2fs, grad_t = %.2fs, loss_t = %.2fs' % 
             (get_current_time(), i + 1, test_loss, acc, round(exec_t, 2),
 			round(grad_t, 2), round(loss_t, 2)))
         writer.write('\n')
@@ -356,14 +356,14 @@ def main():
     use_sgd = True # If false, it will use Adam instead of SGD
 
     batch_size = 128
-    iter_num = 50
+    iter_num = 10
     num_workers = 1
     lr_decay = 0.95
 
-    #shuffle_modes = ['once_shuffle']
+    shuffle_modes = ['once_shuffle']
     #shuffle_modes = ['once_shuffle', 'block', 'block', 'sliding_window', 'bismarck_mrs', 'no_shuffle', 'block_only']
     #shuffle_modes = ['block', 'sliding_window', 'bismarck_mrs', 'no_shuffle', 'block_only']
-    shuffle_modes = ['block']
+    #shuffle_modes = ['block']
 
     os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 

@@ -370,11 +370,11 @@ class Trainer:
 
             accuracy = iter_acc / self.train_tuple_num * 100
                 
-                # print('[%s] [Iter %2d] Loss = %.2f, acc = %.2f, exec_t = %.2fs, grad_t = %.2fs, loss_t = %.2fs' % 
+                # print('[%s] [Epoch %2d] Loss = %.2f, acc = %.2f, exec_t = %.2fs, grad_t = %.2fs, loss_t = %.2fs' % 
                 #     (get_current_time(), i + 1, iter_loss, accuracy, round(exec_t, 2),
                 # 	round(grad_t, 2), round(loss_t, 2)))
 
-            writer.write('[%s] [Iter %2d] Loss = %.2f, acc = %.2f, exec_t = %.2fs, grad_t = %.2fs, loss_t = %.2fs' % 
+            writer.write('[%s] [Epoch %2d] Loss = %.2f, acc = %.2f, exec_t = %.2fs, grad_t = %.2fs, loss_t = %.2fs' % 
                     (get_current_time(), epoch + 1, iter_loss, accuracy, round(exec_t, 2),
                     round(grad_t, 2), round(loss_t, 2)))
             writer.write('\n')
