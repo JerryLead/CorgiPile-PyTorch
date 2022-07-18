@@ -34,9 +34,7 @@ from PIL import Image
 sys.path.append("../shuffleformat")
 sys.path.append(".")
 
-# for running on Euler nodes
-# sys.path.append("/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/CorgiPile-PyTorch/shuffleformat")
-# sys.path.append("/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/CorgiPile-PyTorch/")
+
 
 import shuffleformat.tfrecord as tfrecord
 import shuffleformat.corgipile as corgipile
@@ -67,9 +65,9 @@ best_acc1 = 0
 
 def get_data_path(image_type, data_name, node, shuffle=False):
     if node == 'euler':
-        basedir = '/cluster/work/zhang/xuliji/'
+        basedir = '/cluster/work/username'
     else:
-        basedir = '/mnt/ds3lab-scratch/xuliji/'
+        basedir = '/home/username/'
     
     if image_type == 'raw':
         if data_name == 'imagenette':
@@ -107,8 +105,8 @@ def main():
     node = 'normal'
     data_path = get_data_path(image_type, data_name, node)
     
-    # log_base_dir = '/mnt/ds3lab-scratch/xuliji/code/CorgiPile-PyTorch'
-    log_base_dir = '/nfs/iiscratch-zhang.inf.ethz.ch/export/zhang/export/xuliji/code/CorgiPile-PyTorch'
+    # log_base_dir = '/home/username/code/CorgiPile-PyTorch'
+    log_base_dir = '/home/username/code/CorgiPile-PyTorch'
     log_dir = 'train_log_' + data_name + '_sgd'
 
     model_name = "resnet50"

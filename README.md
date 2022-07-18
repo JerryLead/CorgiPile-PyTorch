@@ -27,7 +27,7 @@ Download the following datasets. Decompress them into a directory like 'corgipil
 
 ### 1. ImageNet data preprocessing
 
-ImageNet dataset contains 1.2 million raw images. It is usually not feasible to load all the images into memory, and it is slow to (randomly) access each image on block-based parallel/distributed file systems such as [Lustre](https://www.lustre.org/) and HDFS. Therefore, in a parallel/distributed cluster, we usually transform the ImageNet dataset into binary format like TFRecord used by TensorFlow (https://www.tensorflow.org/api_docs/python/tf/data/TFRecordDataset) and PyTorch (https://github.com/vahidk/tfrecord).
+ImageNet dataset contains 1.3 million raw images. It is usually not feasible to load all the images into memory, and it is slow to (randomly) access each image on block-based parallel/distributed file systems such as [Lustre](https://www.lustre.org/) and HDFS. Therefore, in a parallel/distributed cluster, we usually transform the ImageNet dataset into binary format like TFRecord used by TensorFlow (https://www.tensorflow.org/api_docs/python/tf/data/TFRecordDataset) and PyTorch (https://github.com/vahidk/tfrecord).
 
 Run [images_raw_to_tfrecord.py](imagenet_dl_bench/pre_process/images_raw_to_tfrecord.py) to transform the ImageNet dataset.
 The code contains annotations for some important configurations. The transformed data contains four files, including `train/train_clustered.tfrecord`, `train/train_clustered.index`, `val/val_clustered.tfrecord`, and `val/val_clustered.index`.

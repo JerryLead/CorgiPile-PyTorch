@@ -25,7 +25,7 @@ if __name__ == '__main__':
             min_word_count = config.min_word_count
         )
 '''
-[lijie@db4ai-1 nlp_dl_bench]$ python3 preprocess.py 
+[nlp_dl_bench]$ python3 preprocess.py 
 
 Training data: reading and preprocessing...
 

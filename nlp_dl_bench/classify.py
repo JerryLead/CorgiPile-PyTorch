@@ -11,7 +11,7 @@ from utils import *
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # path to the checkpoint
-checkpoint_path = '/Users/zou/Renovamen/Developing/Text-Classification/checkpoints/checkpoint_fasttext_agnews.pth.tar'
+checkpoint_path = '/Users/Developing/Text-Classification/checkpoints/checkpoint_fasttext_agnews.pth.tar'
 
 # pad limits
 # only makes sense when model_name = 'han'

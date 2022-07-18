@@ -340,8 +340,8 @@ def get_current_time_filename():
 
 def main():
 
-    log_base_dir = '/mnt/ds3lab-scratch/xuliji/code/CorgiPile-PyTorch'
-    data_dir = '/mnt/ds3lab-scratch/xuliji/data/'
+    log_base_dir = '/home/username/code/CorgiPile-PyTorch'
+    data_dir = '/home/username/data/'
     
     log_dir = 'train_log_cifar10_sgd'
     

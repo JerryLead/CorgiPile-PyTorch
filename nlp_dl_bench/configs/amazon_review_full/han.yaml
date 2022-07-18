@@ -7,8 +7,8 @@ model_name: han  # 'han', 'fasttext', 'attbilstm', 'textcnn', 'transformer'
 # dataset parameters
 dataset: amazon_review_full  # 'ag_news', 'dbpedia', 'yelp_review_polarity', 'yelp_review_full', 'yahoo_answers', 'amazon_review_polarity', 'amazon_review_full'
                         # refer to README.md for more info about each dataset
-dataset_path: /mnt/ds3lab-scratch/xuliji/text_data/data/amazon_review_full_csv  # folder with dataset
-output_path: /mnt/ds3lab-scratch/xuliji/text_data/outputs/amazon_review_full/docs   # folder with data files saved by preprocess.py
+dataset_path: /home/username/text_data/data/amazon_review_full_csv  # folder with dataset
+output_path: /home/username/text_data/outputs/amazon_review_full/docs   # folder with data files saved by preprocess.py
 
 # preprocess parameters
 sentence_limit: 15
@@ -18,7 +18,7 @@ min_word_count: 5
 # word embeddings parameters
 emb_pretrain: True  # false: initialize embedding weights randomly
                     # true: load pre-trained word embeddings
-emb_folder: /mnt/ds3lab-scratch/xuliji/text_data/glove  # only makes sense when `emb_pretrain: True`
+emb_folder: /home/username/text_data/glove  # only makes sense when `emb_pretrain: True`
 emb_filename: glove.6B.300d.txt  # only makes sense when `emb_pretrain: True`
 emb_size: 256  # word embedding size
                # only makes sense when `emb_pretrain: False`
@@ -49,4 +49,4 @@ print_freq: 200  # print training status every __ batches
 checkpoint: null  # path to model checkpoint, null if none
 # tensorboard
 tensorboard: False  # enable tensorboard or not?
-log_dir: /mnt/ds3lab-scratch/xuliji/text_data/logs/han  # folder to save logs for tensorboard, only makes sense when `tensorboard: True`
+log_dir: /home/username/text_data/logs/han  # folder to save logs for tensorboard, only makes sense when `tensorboard: True`

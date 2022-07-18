@@ -106,7 +106,7 @@ if __name__ == '__main__':
     # lr_decay: 0.3  # a factor to multiply learning rate with (0, 1)
     # workers: 1  # number of workers for loading data in the DataLoader
     # num_epochs: 5  # number of epochs to run
-    base_dir = '/mnt/ds3lab-scratch/xuliji/code/CorgiPile-PyTorch'
+    base_dir = '/home/username/code/CorgiPile-PyTorch'
     log_dir = 'train_log_nlp_sgd'
 
     # model_name = 'han'
@@ -166,7 +166,7 @@ if __name__ == '__main__':
     args['buffer_size_ratio'] = buffer_size_ratio
     args['sliding_window_size_ratio'] = sliding_window_size_ratio
     args['bismarck_buffer_size_ratio'] = bismarck_buffer_size_ratio
-    args['old_buffer_checkpoint_dir'] = '/mnt/ds3lab-scratch/xuliji/code/CorgiPile-PyTorch/checkpoint/' + get_current_time_filename() + str(random.randint(1,100))
+    args['old_buffer_checkpoint_dir'] = '/home/username/code/CorgiPile-PyTorch/checkpoint/' + get_current_time_filename() + str(random.randint(1,100))
 
     
     for shuffle_mode in shuffle_modes:

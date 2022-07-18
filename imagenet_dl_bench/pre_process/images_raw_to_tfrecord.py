@@ -165,9 +165,9 @@ def generate_tfRecords_with_index(image_dir, class_labels,
 
 def main():
 
-    base_dir = "/mnt/ds3lab-scratch/shaodgan/"
+    base_dir = "/home/username/"
     raw_images_base_dir = base_dir + "ImageNet/"
-    tfrecord_output_base_dir = os.path.join("/mnt/ds3lab-scratch/xuliji/corgipile_data/", "ImageNet-all-raw-tfrecords")
+    tfrecord_output_base_dir = os.path.join("/home/username/corgipile_data/", "ImageNet-all-raw-tfrecords")
     shuffle = False # True if you would like to get shuffled images in the generated TFRecords
     generate_tfRecords = True
     read_tfRecords = False
